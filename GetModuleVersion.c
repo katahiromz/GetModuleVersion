@@ -14,8 +14,8 @@ typedef struct tagLANGANDCODEPAGE
 HRESULT GetModuleVersion(PCSTR pszFileName, PSTR *ppszDest)
 {
     DWORD dwHandle;
-    PBYTE Data;
-    PVOID pData;
+    PBYTE pbData;
+    PVOID pvData;
 
     *ppszDest = NULL;
 
@@ -25,28 +25,28 @@ HRESULT GetModuleVersion(PCSTR pszFileName, PSTR *ppszDest)
         printf("No version info\n");
         return E_FAIL;
     }
-    Data = (PBYTE)LocalAlloc(LPTR, size);
-    if (!Data)
+    pbData = (PBYTE)LocalAlloc(LPTR, size);
+    if (!pbData)
     {
         printf("E_OUTOFMEMORY\n");
         return E_OUTOFMEMORY;
     }
-    GetFileVersionInfoA(pszFileName, dwHandle, size, Data);
+    GetFileVersionInfoA(pszFileName, dwHandle, size, pbData);
 
     HRESULT hr = E_FAIL;
-    if (VerQueryValueA(Data, "\\VarFileInfo\\Translation", &pData, &size))
+    if (VerQueryValueA(pbData, "\\VarFileInfo\\Translation", &pvData, &size))
     {
-        PVOID pDataSaved = pData;
-        PLANGANDCODEPAGE pEntry = (PLANGANDCODEPAGE)pData;
+        PVOID pDataSaved = pvData;
+        PLANGANDCODEPAGE pEntry = (PLANGANDCODEPAGE)pvData;
         for (; (PBYTE)pEntry + sizeof(LANGANDCODEPAGE) <= (PBYTE)pDataSaved + size; ++pEntry)
         {
             CHAR szPath[MAX_PATH];
             wnsprintfA(szPath, _countof(szPath), "\\StringFileInfo\\%04X%04X\\ProductVersion",
                        pEntry->wLanguage, pEntry->wCodePage);
-            if (VerQueryValueA(Data, szPath, &pData, &size) && size)
+            if (VerQueryValueA(pbData, szPath, &pvData, &size) && size)
             {
                 // NOTE: *ppszDest must be freed using LocalFree later
-                *ppszDest = StrDupA((PSTR)pData);
+                *ppszDest = StrDupA((PSTR)pvData);
                 hr = S_OK;
             }
         }
@@ -54,7 +54,7 @@ HRESULT GetModuleVersion(PCSTR pszFileName, PSTR *ppszDest)
 
     if (hr != S_OK)
         printf("No ProductVersion\n");
-    LocalFree(Data);
+    LocalFree(pbData);
     return hr;
 }
 
