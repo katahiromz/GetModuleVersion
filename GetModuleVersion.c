@@ -44,7 +44,6 @@ HRESULT GetModuleVersion(PCSTR pszFileName, PSTR *ppszDest)
     }
     GetFileVersionInfoA(pszFileName, dwHandle, size, pbData);
 
-    HRESULT hr = E_FAIL;
     if ((VerQueryValueA(pbData, PRODUCT_VER_ENGLISH_US_UTF16,   &pvData, &size) ||
          VerQueryValueA(pbData, PRODUCT_VER_GERMAN_UTF16,       &pvData, &size) ||
          VerQueryValueA(pbData, PRODUCT_VER_ENGLISH_US_WE,      &pvData, &size) ||
@@ -53,7 +52,8 @@ HRESULT GetModuleVersion(PCSTR pszFileName, PSTR *ppszDest)
     {
         // NOTE: *ppszDest must be freed using LocalFree later
         *ppszDest = StrDupA((PSTR)pvData);
-        hr = *ppszDest ? S_OK : E_OUTOFMEMORY;
+        if (!*ppszDest)
+            printf("E_OUTOFMEMORY\n");
     }
     if (VerQueryValueA(pbData, "\\VarFileInfo\\Translation", &pvData, &size))
     {
@@ -68,15 +68,16 @@ HRESULT GetModuleVersion(PCSTR pszFileName, PSTR *ppszDest)
             {
                 // NOTE: *ppszDest must be freed using LocalFree later
                 *ppszDest = StrDupA((PSTR)pvData);
-                hr = *ppszDest ? S_OK : E_OUTOFMEMORY;
+                if (!*ppszDest)
+                    printf("E_OUTOFMEMORY\n");
             }
         }
     }
 
-    if (hr != S_OK)
+    if (!*ppszDest)
         printf("No ProductVersion\n");
     LocalFree(pbData);
-    return hr;
+    return *ppszDest ? S_OK : E_OUTOFMEMORY;
 }
 
 int main(void)
