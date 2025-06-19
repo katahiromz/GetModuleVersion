@@ -44,6 +44,7 @@ HRESULT GetModuleVersion(PCSTR pszFileName, PSTR *ppszDest)
     }
     GetFileVersionInfoA(pszFileName, dwHandle, size, pbData);
 
+    HRESULT hr = E_FAIL;
     if ((VerQueryValueA(pbData, PRODUCT_VER_ENGLISH_US_UTF16,   &pvData, &size) ||
          VerQueryValueA(pbData, PRODUCT_VER_GERMAN_UTF16,       &pvData, &size) ||
          VerQueryValueA(pbData, PRODUCT_VER_ENGLISH_US_WE,      &pvData, &size) ||
@@ -52,10 +53,9 @@ HRESULT GetModuleVersion(PCSTR pszFileName, PSTR *ppszDest)
     {
         // NOTE: *ppszDest must be freed using LocalFree later
         *ppszDest = StrDupA((PSTR)pvData);
-        if (!*ppszDest)
-            printf("E_OUTOFMEMORY\n");
+        hr = *ppszDest ? S_OK : E_OUTOFMEMORY;
     }
-    if (VerQueryValueA(pbData, "\\VarFileInfo\\Translation", &pvData, &size))
+    else if (VerQueryValueA(pbData, "\\VarFileInfo\\Translation", &pvData, &size))
     {
         PVOID pDataSaved = pvData;
         PLANGANDCODEPAGE pEntry = (PLANGANDCODEPAGE)pvData;
@@ -68,16 +68,16 @@ HRESULT GetModuleVersion(PCSTR pszFileName, PSTR *ppszDest)
             {
                 // NOTE: *ppszDest must be freed using LocalFree later
                 *ppszDest = StrDupA((PSTR)pvData);
-                if (!*ppszDest)
-                    printf("E_OUTOFMEMORY\n");
+                hr = *ppszDest ? S_OK : E_OUTOFMEMORY;
             }
         }
     }
 
-    if (!*ppszDest)
-        printf("No ProductVersion\n");
+    if (FAILED(hr))
+        printf("hr: 0x%lX\n", hr);
+
     LocalFree(pbData);
-    return *ppszDest ? S_OK : E_OUTOFMEMORY;
+    return hr;
 }
 
 int main(void)
